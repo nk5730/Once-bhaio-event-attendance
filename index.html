@@ -1,0 +1,817 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Hajri — Attendance Register</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#F3F5F1;
+    --surface:#FFFFFF;
+    --ink:#1F2A24;
+    --muted:#6B7A70;
+    --line:#E1E4DC;
+    --primary:#2F6B4F;
+    --primary-ink:#F3F5F1;
+    --accent:#D9822B;
+    --accent-ink:#2A1B08;
+    --danger:#B3452D;
+    --chip:#EAF0EA;
+    --radius:10px;
+    --radius-sm:6px;
+    --serif:'Fraunces', Georgia, serif;
+    --sans:'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased;}
+  #app{max-width:480px;margin:0 auto;min-height:100vh;background:var(--bg);display:flex;flex-direction:column;position:relative;}
+
+  header.top{padding:22px 20px 14px;border-bottom:1px solid var(--line);background:var(--surface);position:sticky;top:0;z-index:5;}
+  header.top .wordmark{font-family:var(--serif);font-weight:600;font-size:26px;letter-spacing:-0.01em;color:var(--primary);}
+  header.top .wordmark span{color:var(--accent);}
+  header.top .subtitle{font-size:13px;color:var(--muted);margin-top:2px;}
+
+  main{flex:1;padding:16px 16px 90px;}
+
+  .view{display:none;}
+  .view.active{display:block;}
+
+  h2.section-title{font-family:var(--serif);font-weight:600;font-size:20px;margin:4px 0 14px;color:var(--ink);}
+
+  .empty{border:1px dashed var(--line);border-radius:var(--radius);padding:32px 20px;text-align:center;color:var(--muted);font-size:14px;background:var(--surface);}
+  .empty strong{display:block;color:var(--ink);font-size:15px;margin-bottom:4px;font-family:var(--serif);font-weight:600;}
+
+  .list{display:flex;flex-direction:column;border-radius:var(--radius);overflow:hidden;border:1px solid var(--line);background:var(--surface);}
+  .row{display:flex;align-items:center;gap:12px;padding:12px 14px;border-bottom:1px solid var(--line);}
+  .row:last-child{border-bottom:none;}
+  .row:active{background:#F8F9F6;}
+
+  .avatar{width:42px;height:42px;border-radius:50%;object-fit:cover;background:var(--chip);flex-shrink:0;border:1px solid var(--line);}
+  .avatar-fallback{width:42px;height:42px;border-radius:50%;background:var(--chip);color:var(--primary);display:flex;align-items:center;justify-content:center;font-family:var(--serif);font-weight:600;font-size:16px;flex-shrink:0;}
+
+  .row-main{flex:1;min-width:0;}
+  .row-title{font-weight:600;font-size:14.5px;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .row-sub{font-size:12.5px;color:var(--muted);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+
+  .chip{display:inline-block;font-size:11px;background:var(--chip);color:var(--primary);padding:2px 8px;border-radius:20px;font-weight:600;}
+
+  .fab{position:fixed;bottom:88px;right:calc(50% - 240px + 20px);width:54px;height:54px;border-radius:50%;background:var(--accent);color:var(--accent-ink);border:none;font-size:26px;line-height:54px;text-align:center;box-shadow:0 6px 16px rgba(217,130,43,0.4);cursor:pointer;z-index:6;}
+  @media (max-width:480px){ .fab{right:20px;} }
+
+  nav.bottom{position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-top:1px solid var(--line);display:flex;max-width:480px;margin:0 auto;z-index:5;}
+  nav.bottom button{flex:1;background:none;border:none;padding:10px 4px 12px;font-family:var(--sans);font-size:11px;font-weight:600;color:var(--muted);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:4px;}
+  nav.bottom button .ic{font-size:19px;}
+  nav.bottom button.active{color:var(--primary);}
+
+  select, input[type=text], input[type=tel], textarea{
+    width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:var(--radius-sm);
+    font-family:var(--sans);font-size:14px;background:var(--surface);color:var(--ink);
+  }
+  select:focus, input:focus, textarea:focus{outline:2px solid var(--primary);outline-offset:1px;}
+  label.field-label{display:block;font-size:12.5px;font-weight:600;color:var(--muted);margin:14px 0 6px;}
+  label.field-label:first-child{margin-top:0;}
+
+  .toolbar{display:flex;gap:8px;margin-bottom:14px;}
+  .toolbar select{flex:1;}
+
+  .stat-strip{display:flex;gap:10px;margin-bottom:14px;}
+  .stat-box{flex:1;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:12px 14px;}
+  .stat-box .num{font-family:var(--serif);font-weight:700;font-size:22px;color:var(--primary);}
+  .stat-box .lbl{font-size:11.5px;color:var(--muted);margin-top:2px;}
+
+  .check-row{display:flex;align-items:center;gap:12px;padding:12px 14px;border-bottom:1px solid var(--line);}
+  .check-row:last-child{border-bottom:none;}
+  .checkbox{width:24px;height:24px;border-radius:6px;border:2px solid var(--line);flex-shrink:0;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .12s ease;}
+  .checkbox.checked{background:var(--primary);border-color:var(--primary);}
+  .checkbox.checked::after{content:'✓';color:#fff;font-size:15px;font-weight:700;}
+
+  .segmented{display:flex;background:var(--chip);border-radius:var(--radius-sm);padding:3px;margin-bottom:14px;}
+  .segmented button{flex:1;background:none;border:none;padding:8px;border-radius:5px;font-family:var(--sans);font-size:13px;font-weight:600;color:var(--muted);cursor:pointer;}
+  .segmented button.active{background:var(--surface);color:var(--primary);box-shadow:0 1px 2px rgba(0,0,0,0.08);}
+
+  .overlay{position:fixed;inset:0;background:rgba(20,26,22,0.45);z-index:20;display:none;align-items:flex-end;justify-content:center;}
+  .overlay.active{display:flex;}
+  .modal{width:100%;max-width:480px;background:var(--surface);border-radius:16px 16px 0 0;max-height:88vh;overflow-y:auto;padding:20px 20px calc(20px + env(safe-area-inset-bottom));animation:slideup .2s ease;}
+  @keyframes slideup{from{transform:translateY(30px);opacity:0;}to{transform:translateY(0);opacity:1;}}
+  .modal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;}
+  .modal-head h3{font-family:var(--serif);font-weight:600;font-size:19px;margin:0;}
+  .modal-close{background:none;border:none;font-size:22px;color:var(--muted);cursor:pointer;padding:4px;}
+
+  .photo-row{display:flex;gap:12px;margin-top:10px;}
+  .photo-slot{flex:1;text-align:center;}
+  .photo-slot .ph-preview{width:100%;aspect-ratio:1;border-radius:var(--radius-sm);object-fit:cover;background:var(--chip);border:1px solid var(--line);display:block;margin-bottom:6px;}
+  .photo-slot .ph-placeholder{width:100%;aspect-ratio:1;border-radius:var(--radius-sm);background:var(--chip);border:1px dashed var(--line);display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:22px;margin-bottom:6px;}
+  .photo-slot input[type=file]{display:none;}
+  .photo-slot .ph-btn{display:block;font-size:12px;font-weight:600;color:var(--primary);cursor:pointer;}
+
+  .btn{width:100%;padding:13px;border-radius:var(--radius-sm);border:none;font-family:var(--sans);font-weight:700;font-size:14.5px;cursor:pointer;margin-top:18px;}
+  .btn-primary{background:var(--primary);color:var(--primary-ink);}
+  .btn-danger{background:none;color:var(--danger);font-weight:600;margin-top:8px;}
+  .btn-ghost{background:none;color:var(--muted);margin-top:8px;}
+
+  .toast{position:fixed;bottom:100px;left:50%;transform:translateX(-50%);background:var(--ink);color:#fff;padding:9px 18px;border-radius:20px;font-size:13px;font-weight:500;z-index:30;opacity:0;transition:opacity .2s ease;pointer-events:none;max-width:85%;text-align:center;}
+  .toast.show{opacity:1;}
+
+  .loading{text-align:center;padding:40px 0;color:var(--muted);font-size:13px;}
+  .search-box{margin-bottom:12px;}
+
+  .setup-screen{max-width:420px;margin:0 auto;min-height:100vh;padding:40px 24px;background:var(--bg);}
+  .setup-screen .wordmark{font-family:var(--serif);font-weight:600;font-size:30px;color:var(--primary);margin-bottom:6px;}
+  .setup-screen .wordmark span{color:var(--accent);}
+  .setup-screen p{font-size:14px;color:var(--muted);line-height:1.55;}
+  .setup-screen ol{padding-left:20px;font-size:14px;line-height:1.7;color:var(--ink);}
+  .setup-screen code{background:var(--chip);padding:1px 6px;border-radius:4px;font-size:12.5px;}
+  .setup-screen .card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:18px;margin-top:16px;}
+</style>
+</head>
+<body>
+
+<!-- SETUP SCREEN (shown until APPS_SCRIPT_URL below is configured) -->
+<div class="setup-screen" id="setupScreen" style="display:none;">
+  <div class="wordmark">Haj<span>ri</span></div>
+  <p>This copy of Hajri isn't connected to a Google Sheet yet.</p>
+  <div class="card">
+    <p style="margin-top:0;"><strong style="color:var(--ink);">To connect it:</strong></p>
+    <ol>
+      <li>Create a Google Sheet in your Drive.</li>
+      <li>Extensions → Apps Script, paste in the <code>hajri-backend.gs</code> code.</li>
+      <li>Deploy → New deployment → Web app → Execute as <strong>Me</strong>, access <strong>Anyone</strong>.</li>
+      <li>Copy the URL ending in <code>/exec</code>.</li>
+      <li>Open this HTML file in a text editor, find <code>APPS_SCRIPT_URL</code> near the top of the script, and paste your URL in.</li>
+      <li>Re-upload the file to your host (GitHub Pages / Netlify / Firebase Hosting) and reload this page.</li>
+    </ol>
+  </div>
+  <p style="margin-top:16px;">Once connected, everyone who opens this page's link will see and edit the same data, stored in your Sheet.</p>
+</div>
+
+<div class="overlay active" id="pinOverlay" style="align-items:center;background:var(--bg);z-index:50;display:none;">
+  <div class="modal" style="border-radius:16px;max-width:340px;text-align:center;padding:32px 24px;">
+    <div class="wordmark" style="font-family:var(--serif);font-weight:600;font-size:26px;color:var(--primary);margin-bottom:4px;">Haj<span style="color:var(--accent);">ri</span></div>
+    <p id="pinPrompt" style="color:var(--muted);font-size:13.5px;margin:0 0 18px;">Loading…</p>
+    <input type="text" inputmode="numeric" pattern="[0-9]*" id="pinInput" maxlength="8" placeholder="Enter PIN" style="text-align:center;letter-spacing:4px;font-size:18px;">
+    <div id="pinConfirmWrap" style="display:none;margin-top:10px;">
+      <input type="text" inputmode="numeric" pattern="[0-9]*" id="pinConfirmInput" maxlength="8" placeholder="Confirm PIN" style="text-align:center;letter-spacing:4px;font-size:18px;">
+    </div>
+    <p id="pinError" style="color:var(--danger);font-size:12.5px;margin:10px 0 0;min-height:16px;"></p>
+    <button class="btn btn-primary" id="pinSubmitBtn" style="margin-top:14px;">Continue</button>
+  </div>
+</div>
+
+<div id="app" style="display:none;">
+
+  <header class="top">
+    <div class="wordmark">Haj<span>ri</span></div>
+    <div class="subtitle" id="subtitle">Attendance register</div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-top:6px;">
+      <div style="font-size:11px;color:var(--accent);font-weight:600;">⚠ Shared data — visible &amp; editable by anyone with this link</div>
+      <button id="changePinBtn" style="background:none;border:none;color:var(--muted);font-size:11px;font-weight:600;cursor:pointer;padding:0;white-space:nowrap;margin-left:8px;">Change PIN</button>
+    </div>
+  </header>
+
+  <main>
+
+    <section class="view" id="view-users">
+      <h2 class="section-title">People</h2>
+      <div class="search-box"><input type="text" id="userSearch" placeholder="Search by name, Mahatma ID or center"></div>
+      <div id="usersList"><div class="loading">Loading…</div></div>
+    </section>
+
+    <section class="view" id="view-events">
+      <h2 class="section-title">Events</h2>
+      <div id="eventsList"><div class="loading">Loading…</div></div>
+    </section>
+
+    <section class="view" id="view-attendance">
+      <h2 class="section-title">Mark attendance</h2>
+      <div class="toolbar">
+        <select id="attendanceEventSelect"><option value="">Select an event…</option></select>
+      </div>
+      <div id="attendanceStats"></div>
+      <div id="attendanceList"></div>
+    </section>
+
+    <section class="view" id="view-reports">
+      <h2 class="section-title">Reports</h2>
+      <div class="segmented">
+        <button id="segByUser" class="active">By person</button>
+        <button id="segByEvent">By event</button>
+      </div>
+      <div id="reportByUser">
+        <div class="toolbar"><select id="reportUserSelect"><option value="">Select a person…</option></select></div>
+        <div id="reportUserResult"></div>
+      </div>
+      <div id="reportByEvent" style="display:none;">
+        <div class="toolbar"><select id="reportEventSelect"><option value="">Select an event…</option></select></div>
+        <div id="reportEventResult"></div>
+      </div>
+    </section>
+
+  </main>
+
+  <button class="fab" id="fabAdd">+</button>
+
+  <nav class="bottom">
+    <button data-view="users" class="tabbtn active"><span class="ic">🧑</span>People</button>
+    <button data-view="events" class="tabbtn"><span class="ic">📅</span>Events</button>
+    <button data-view="attendance" class="tabbtn"><span class="ic">☑️</span>Attend</button>
+    <button data-view="reports" class="tabbtn"><span class="ic">📊</span>Reports</button>
+  </nav>
+
+</div>
+
+<div class="overlay" id="userModalOverlay">
+  <div class="modal">
+    <div class="modal-head">
+      <h3 id="userModalTitle">Add person</h3>
+      <button class="modal-close" data-close="userModalOverlay">&times;</button>
+    </div>
+    <input type="hidden" id="userId">
+    <label class="field-label">Full name</label>
+    <input type="text" id="uName" placeholder="e.g. Sunita Sharma">
+    <label class="field-label">Mahatma ID</label>
+    <input type="text" id="uMahatmaId" placeholder="e.g. MH-00123">
+    <label class="field-label">Mobile number</label>
+    <input type="tel" id="uMobile" placeholder="e.g. 98765 43210">
+    <label class="field-label">Center</label>
+    <input type="text" id="uCenter" placeholder="e.g. Ahmedabad Center">
+    <label class="field-label">Akonnect ID</label>
+    <input type="text" id="uAkonnectId" placeholder="e.g. AK-00456">
+
+    <label class="field-label">Photos</label>
+    <div class="photo-row">
+      <div class="photo-slot">
+        <div id="uUserPhotoPreviewWrap"><div class="ph-placeholder">🧑</div></div>
+        <input type="file" accept="image/*" id="uUserPhotoFile">
+        <label class="ph-btn" for="uUserPhotoFile">User photo</label>
+      </div>
+      <div class="photo-slot">
+        <div id="uAkonnectPhotoPreviewWrap"><div class="ph-placeholder">🪪</div></div>
+        <input type="file" accept="image/*" id="uAkonnectPhotoFile">
+        <label class="ph-btn" for="uAkonnectPhotoFile">Akonnect ID photo</label>
+      </div>
+    </div>
+
+    <button class="btn btn-primary" id="saveUserBtn">Save person</button>
+    <button class="btn btn-danger" id="deleteUserBtn" style="display:none;">Delete this person</button>
+    <button class="btn btn-ghost" data-close="userModalOverlay">Cancel</button>
+  </div>
+</div>
+
+<div class="overlay" id="eventModalOverlay">
+  <div class="modal">
+    <div class="modal-head">
+      <h3 id="eventModalTitle">Add event</h3>
+      <button class="modal-close" data-close="eventModalOverlay">&times;</button>
+    </div>
+    <input type="hidden" id="eventId">
+    <label class="field-label">Event name</label>
+    <input type="text" id="eName" placeholder="e.g. Sunday Satsang">
+    <label class="field-label">Date</label>
+    <input type="text" id="eDate" placeholder="e.g. 2026-09-14" onfocus="(this.type='date')">
+    <label class="field-label">Notes (optional)</label>
+    <textarea id="eNotes" rows="2" placeholder="Anything worth remembering about this event"></textarea>
+
+    <button class="btn btn-primary" id="saveEventBtn">Save event</button>
+    <button class="btn btn-danger" id="deleteEventBtn" style="display:none;">Delete this event</button>
+    <button class="btn btn-ghost" data-close="eventModalOverlay">Cancel</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+  "use strict";
+
+  // ======================================================================
+  // PASTE YOUR GOOGLE APPS SCRIPT WEB APP URL HERE (see setup screen / README)
+  // ======================================================================
+  var APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzJjoo5FMRAZDP0QgmhzIzyUreo0hTLof48Jl54dqlNEeGDaIdYaIP2tiguDbMjpUceMA/exec';
+  var CONFIGURED = APPS_SCRIPT_URL.indexOf('PASTE_') !== 0 && APPS_SCRIPT_URL.indexOf('http') === 0;
+
+  if (!CONFIGURED){
+    document.getElementById('setupScreen').style.display = 'block';
+    return; // stop here — nothing else can run without a backend
+  }
+
+  // ---------- backend (Google Sheets via Apps Script) ----------
+  async function gsGet(params){
+    const url = APPS_SCRIPT_URL + '?' + new URLSearchParams(params).toString();
+    const res = await fetch(url);
+    return res.json();
+  }
+  async function gsPost(body){
+    const res = await fetch(APPS_SCRIPT_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // avoids CORS preflight
+      body: JSON.stringify(body)
+    });
+    return res.json();
+  }
+
+  async function sGet(key){
+    try{ const r = await gsGet({action:'get', key}); return r && r.ok ? r.value : null; }
+    catch(e){ console.error(e); return null; }
+  }
+  async function sSet(key, value){
+    try{ const r = await gsPost({action:'set', key, value}); return r && r.ok ? true : null; }
+    catch(e){ console.error(e); showToast('Could not save — check your connection'); return null; }
+  }
+  async function sDelete(key){
+    try{ const r = await gsPost({action:'delete', key}); return r && r.ok; }
+    catch(e){ console.error(e); return null; }
+  }
+  async function sList(prefix){
+    try{ const r = await gsGet({action:'list', prefix}); return r && r.ok ? r.keys : []; }
+    catch(e){ console.error(e); return []; }
+  }
+  async function sGetMulti(keys){
+    if (!keys.length) return {};
+    try{ const r = await gsPost({action:'getMulti', keys}); return r && r.ok ? r.values : {}; }
+    catch(e){ console.error(e); return {}; }
+  }
+
+  function uid(prefix){ return prefix + '_' + Date.now() + '_' + Math.random().toString(36).slice(2,8); }
+  function esc(str){ const d = document.createElement('div'); d.textContent = str == null ? '' : String(str); return d.innerHTML; }
+
+  function showToast(msg){
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(showToast._h);
+    showToast._h = setTimeout(()=>t.classList.remove('show'), 2200);
+  }
+
+  function fileToCompressedDataUrl(file, maxDim){
+    return new Promise((resolve, reject)=>{
+      const reader = new FileReader();
+      reader.onload = function(e){
+        const img = new Image();
+        img.onload = function(){
+          let w = img.width, h = img.height;
+          if (w > h && w > maxDim){ h = Math.round(h * maxDim / w); w = maxDim; }
+          else if (h > maxDim){ w = Math.round(w * maxDim / h); h = maxDim; }
+          const canvas = document.createElement('canvas');
+          canvas.width = w; canvas.height = h;
+          canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+          resolve(canvas.toDataURL('image/jpeg', 0.6));
+        };
+        img.onerror = reject;
+        img.src = e.target.result;
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }
+
+  // ---------- caches ----------
+  let usersCache = [];
+  let eventsCache = [];
+
+  // Users: core record at 'user:{id}', photos stored separately at
+  // 'userphoto:{id}:main' / 'userphoto:{id}:akonnect' so each Sheets cell
+  // stays well under Google's ~50,000-character cell limit.
+  async function loadUsers(){
+    const coreKeys = await sList('user:');
+    const coreVals = await sGetMulti(coreKeys);
+    const records = [];
+    const photoKeys = [];
+    Object.keys(coreVals).forEach(k=>{
+      try{
+        const rec = JSON.parse(coreVals[k]);
+        records.push(rec);
+        photoKeys.push('userphoto:' + rec.id + ':main', 'userphoto:' + rec.id + ':akonnect');
+      }catch(e){}
+    });
+    const photoVals = await sGetMulti(photoKeys);
+    records.forEach(rec=>{
+      rec.userPhoto = photoVals['userphoto:' + rec.id + ':main'] || null;
+      rec.akonnectPhoto = photoVals['userphoto:' + rec.id + ':akonnect'] || null;
+    });
+    records.sort((a,b)=> (a.name||'').localeCompare(b.name||''));
+    usersCache = records;
+    return records;
+  }
+
+  async function loadEvents(){
+    const keys = await sList('event:');
+    const vals = await sGetMulti(keys);
+    const out = Object.keys(vals).map(k=>{ try{ return JSON.parse(vals[k]); }catch(e){ return null; } }).filter(Boolean);
+    out.sort((a,b)=> (b.date||'').localeCompare(a.date||''));
+    eventsCache = out;
+    return out;
+  }
+
+  async function getAttendanceMap(eventId){
+    const v = await sGet('attendance:' + eventId);
+    if (!v) return {};
+    try{ return JSON.parse(v); }catch(e){ return {}; }
+  }
+  async function setAttendanceMap(eventId, map){
+    return sSet('attendance:' + eventId, JSON.stringify(map));
+  }
+
+  // ---------- navigation ----------
+  const views = ['users','events','attendance','reports'];
+  function goTo(view){
+    views.forEach(v=> document.getElementById('view-'+v).classList.toggle('active', v===view));
+    document.querySelectorAll('.tabbtn').forEach(b=>b.classList.toggle('active', b.dataset.view===view));
+    document.getElementById('fabAdd').style.display = (view==='attendance'||view==='reports') ? 'none' : 'flex';
+    const subs = {users:'People in your register', events:'Events you\u2019ve created', attendance:'Tap a name to mark present', reports:'Attendance history & counts'};
+    document.getElementById('subtitle').textContent = subs[view];
+    if (view==='users') renderUsersList();
+    if (view==='events') renderEventsList();
+    if (view==='attendance') refreshAttendanceView();
+    if (view==='reports') refreshReportSelects();
+  }
+  document.querySelectorAll('.tabbtn').forEach(b=> b.addEventListener('click', ()=>goTo(b.dataset.view)));
+
+  document.getElementById('fabAdd').addEventListener('click', ()=>{
+    const current = document.querySelector('.tabbtn.active').dataset.view;
+    if (current === 'users') openUserModal(null);
+    else if (current === 'events') openEventModal(null);
+  });
+
+  document.querySelectorAll('[data-close]').forEach(b=>{
+    b.addEventListener('click', ()=> document.getElementById(b.dataset.close).classList.remove('active'));
+  });
+
+  // ---------- USERS ----------
+  function initials(name){ return (name||'?').trim().split(/\s+/).slice(0,2).map(s=>s[0]).join('').toUpperCase(); }
+
+  function renderUsersList(){
+    const q = (document.getElementById('userSearch').value || '').toLowerCase().trim();
+    const box = document.getElementById('usersList');
+    const filtered = usersCache.filter(u=>{
+      if (!q) return true;
+      return (u.name||'').toLowerCase().includes(q) || (u.mahatmaId||'').toLowerCase().includes(q) || (u.center||'').toLowerCase().includes(q);
+    });
+    if (!usersCache.length){ box.innerHTML = '<div class="empty"><strong>No one added yet</strong>Tap the + button to add your first person.</div>'; return; }
+    if (!filtered.length){ box.innerHTML = '<div class="empty"><strong>No matches</strong>Try a different search term.</div>'; return; }
+    box.innerHTML = '<div class="list">' + filtered.map(u=>{
+      const av = u.userPhoto ? `<img class="avatar" src="${u.userPhoto}">` : `<div class="avatar-fallback">${esc(initials(u.name))}</div>`;
+      return `<div class="row" data-id="${u.id}" data-kind="user">${av}<div class="row-main"><div class="row-title">${esc(u.name || 'Unnamed')}</div><div class="row-sub">${esc(u.center || '—')}${u.mahatmaId ? ' · ' + esc(u.mahatmaId) : ''}</div></div></div>`;
+    }).join('') + '</div>';
+    box.querySelectorAll('[data-kind="user"]').forEach(el=> el.addEventListener('click', ()=> openUserModal(el.dataset.id)));
+  }
+  document.getElementById('userSearch').addEventListener('input', renderUsersList);
+
+  let uUserPhotoData = null, uAkonnectPhotoData = null;
+
+  function resetUserModal(){
+    document.getElementById('userId').value = '';
+    document.getElementById('uName').value = '';
+    document.getElementById('uMahatmaId').value = '';
+    document.getElementById('uMobile').value = '';
+    document.getElementById('uCenter').value = '';
+    document.getElementById('uAkonnectId').value = '';
+    uUserPhotoData = null; uAkonnectPhotoData = null;
+    document.getElementById('uUserPhotoPreviewWrap').innerHTML = '<div class="ph-placeholder">🧑</div>';
+    document.getElementById('uAkonnectPhotoPreviewWrap').innerHTML = '<div class="ph-placeholder">🪪</div>';
+    document.getElementById('uUserPhotoFile').value = '';
+    document.getElementById('uAkonnectPhotoFile').value = '';
+    document.getElementById('deleteUserBtn').style.display = 'none';
+  }
+
+  function openUserModal(id){
+    resetUserModal();
+    if (id){
+      const u = usersCache.find(x=>x.id===id);
+      if (u){
+        document.getElementById('userModalTitle').textContent = 'Edit person';
+        document.getElementById('userId').value = u.id;
+        document.getElementById('uName').value = u.name || '';
+        document.getElementById('uMahatmaId').value = u.mahatmaId || '';
+        document.getElementById('uMobile').value = u.mobile || '';
+        document.getElementById('uCenter').value = u.center || '';
+        document.getElementById('uAkonnectId').value = u.akonnectId || '';
+        if (u.userPhoto){ uUserPhotoData = u.userPhoto; document.getElementById('uUserPhotoPreviewWrap').innerHTML = `<img class="ph-preview" src="${u.userPhoto}">`; }
+        if (u.akonnectPhoto){ uAkonnectPhotoData = u.akonnectPhoto; document.getElementById('uAkonnectPhotoPreviewWrap').innerHTML = `<img class="ph-preview" src="${u.akonnectPhoto}">`; }
+        document.getElementById('deleteUserBtn').style.display = 'block';
+      }
+    } else {
+      document.getElementById('userModalTitle').textContent = 'Add person';
+    }
+    document.getElementById('userModalOverlay').classList.add('active');
+  }
+
+  document.getElementById('uUserPhotoFile').addEventListener('change', async function(){
+    if (!this.files[0]) return;
+    const data = await fileToCompressedDataUrl(this.files[0], 300);
+    uUserPhotoData = data;
+    document.getElementById('uUserPhotoPreviewWrap').innerHTML = `<img class="ph-preview" src="${data}">`;
+  });
+  document.getElementById('uAkonnectPhotoFile').addEventListener('change', async function(){
+    if (!this.files[0]) return;
+    const data = await fileToCompressedDataUrl(this.files[0], 300);
+    uAkonnectPhotoData = data;
+    document.getElementById('uAkonnectPhotoPreviewWrap').innerHTML = `<img class="ph-preview" src="${data}">`;
+  });
+
+  document.getElementById('saveUserBtn').addEventListener('click', async ()=>{
+    const name = document.getElementById('uName').value.trim();
+    if (!name){ showToast('Name is required'); return; }
+    let id = document.getElementById('userId').value;
+    if (!id) id = uid('user');
+    const core = {
+      id, name,
+      mahatmaId: document.getElementById('uMahatmaId').value.trim(),
+      mobile: document.getElementById('uMobile').value.trim(),
+      center: document.getElementById('uCenter').value.trim(),
+      akonnectId: document.getElementById('uAkonnectId').value.trim()
+    };
+    const btn = document.getElementById('saveUserBtn');
+    btn.textContent = 'Saving…'; btn.disabled = true;
+    const ok = await sSet('user:' + id, JSON.stringify(core));
+    if (ok){
+      if (uUserPhotoData) await sSet('userphoto:' + id + ':main', uUserPhotoData);
+      if (uAkonnectPhotoData) await sSet('userphoto:' + id + ':akonnect', uAkonnectPhotoData);
+    }
+    btn.textContent = 'Save person'; btn.disabled = false;
+    if (ok){
+      document.getElementById('userModalOverlay').classList.remove('active');
+      showToast('Person saved');
+      await loadUsers();
+      renderUsersList();
+    }
+  });
+
+  document.getElementById('deleteUserBtn').addEventListener('click', async ()=>{
+    const id = document.getElementById('userId').value;
+    if (!id) return;
+    if (!confirm('Delete this person? This cannot be undone.')) return;
+    await sDelete('user:' + id);
+    await sDelete('userphoto:' + id + ':main');
+    await sDelete('userphoto:' + id + ':akonnect');
+    document.getElementById('userModalOverlay').classList.remove('active');
+    showToast('Person deleted');
+    await loadUsers();
+    renderUsersList();
+  });
+
+  // ---------- EVENTS ----------
+  function renderEventsList(){
+    const box = document.getElementById('eventsList');
+    if (!eventsCache.length){ box.innerHTML = '<div class="empty"><strong>No events yet</strong>Tap the + button to create your first event.</div>'; return; }
+    box.innerHTML = '<div class="list">' + eventsCache.map(ev=>{
+      return `<div class="row" data-id="${ev.id}" data-kind="event"><div class="avatar-fallback">📅</div><div class="row-main"><div class="row-title">${esc(ev.name || 'Untitled event')}</div><div class="row-sub">${esc(ev.date || 'No date set')}</div></div></div>`;
+    }).join('') + '</div>';
+    box.querySelectorAll('[data-kind="event"]').forEach(el=> el.addEventListener('click', ()=> openEventModal(el.dataset.id)));
+  }
+
+  function resetEventModal(){
+    document.getElementById('eventId').value = '';
+    document.getElementById('eName').value = '';
+    document.getElementById('eDate').value = '';
+    document.getElementById('eDate').type = 'text';
+    document.getElementById('eDate').placeholder = 'e.g. 2026-09-14';
+    document.getElementById('eNotes').value = '';
+    document.getElementById('deleteEventBtn').style.display = 'none';
+  }
+
+  function openEventModal(id){
+    resetEventModal();
+    if (id){
+      const ev = eventsCache.find(x=>x.id===id);
+      if (ev){
+        document.getElementById('eventModalTitle').textContent = 'Edit event';
+        document.getElementById('eventId').value = ev.id;
+        document.getElementById('eName').value = ev.name || '';
+        document.getElementById('eDate').type = 'date';
+        document.getElementById('eDate').value = ev.date || '';
+        document.getElementById('eNotes').value = ev.notes || '';
+        document.getElementById('deleteEventBtn').style.display = 'block';
+      }
+    } else {
+      document.getElementById('eventModalTitle').textContent = 'Add event';
+    }
+    document.getElementById('eventModalOverlay').classList.add('active');
+  }
+
+  document.getElementById('saveEventBtn').addEventListener('click', async ()=>{
+    const name = document.getElementById('eName').value.trim();
+    if (!name){ showToast('Event name is required'); return; }
+    let id = document.getElementById('eventId').value;
+    if (!id) id = uid('event');
+    const record = { id, name, date: document.getElementById('eDate').value.trim(), notes: document.getElementById('eNotes').value.trim() };
+    const btn = document.getElementById('saveEventBtn');
+    btn.textContent = 'Saving…'; btn.disabled = true;
+    const res = await sSet('event:' + id, JSON.stringify(record));
+    btn.textContent = 'Save event'; btn.disabled = false;
+    if (res){
+      document.getElementById('eventModalOverlay').classList.remove('active');
+      showToast('Event saved');
+      await loadEvents();
+      renderEventsList();
+      populateEventSelects();
+    }
+  });
+
+  document.getElementById('deleteEventBtn').addEventListener('click', async ()=>{
+    const id = document.getElementById('eventId').value;
+    if (!id) return;
+    if (!confirm('Delete this event? Its attendance record will also be removed.')) return;
+    await sDelete('event:' + id);
+    await sDelete('attendance:' + id);
+    document.getElementById('eventModalOverlay').classList.remove('active');
+    showToast('Event deleted');
+    await loadEvents();
+    renderEventsList();
+    populateEventSelects();
+  });
+
+  // ---------- ATTENDANCE ----------
+  function populateEventSelects(){
+    const opts = '<option value="">Select an event…</option>' + eventsCache.map(ev=>`<option value="${ev.id}">${esc(ev.name)}${ev.date ? ' — ' + esc(ev.date) : ''}</option>`).join('');
+    const a = document.getElementById('attendanceEventSelect');
+    const r = document.getElementById('reportEventSelect');
+    const prevA = a.value, prevR = r.value;
+    a.innerHTML = opts; r.innerHTML = opts;
+    if (eventsCache.find(e=>e.id===prevA)) a.value = prevA;
+    if (eventsCache.find(e=>e.id===prevR)) r.value = prevR;
+  }
+
+  async function refreshAttendanceView(){ populateEventSelects(); await renderAttendanceList(); }
+
+  async function renderAttendanceList(){
+    const eventId = document.getElementById('attendanceEventSelect').value;
+    const statsBox = document.getElementById('attendanceStats');
+    const listBox = document.getElementById('attendanceList');
+    if (!eventId){
+      statsBox.innerHTML = '';
+      listBox.innerHTML = usersCache.length ? '<div class="empty"><strong>Pick an event above</strong>Choose an event to start marking attendance.</div>' : '<div class="empty"><strong>Add people first</strong>Go to the People tab to add attendees.</div>';
+      return;
+    }
+    if (!usersCache.length){ listBox.innerHTML = '<div class="empty"><strong>No one to mark</strong>Add people in the People tab first.</div>'; statsBox.innerHTML = ''; return; }
+    listBox.innerHTML = '<div class="loading">Loading…</div>';
+    const map = await getAttendanceMap(eventId);
+    const presentCount = usersCache.filter(u=>map[u.id]).length;
+    function statsHtml(pc){
+      return `<div class="stat-strip"><div class="stat-box"><div class="num">${pc}</div><div class="lbl">Present</div></div><div class="stat-box"><div class="num">${usersCache.length - pc}</div><div class="lbl">Absent</div></div><div class="stat-box"><div class="num">${usersCache.length}</div><div class="lbl">Total</div></div></div>`;
+    }
+    statsBox.innerHTML = statsHtml(presentCount);
+    listBox.innerHTML = '<div class="list">' + usersCache.map(u=>{
+      const checked = !!map[u.id];
+      const av = u.userPhoto ? `<img class="avatar" src="${u.userPhoto}">` : `<div class="avatar-fallback">${esc(initials(u.name))}</div>`;
+      return `<div class="check-row" data-uid="${u.id}">${av}<div class="row-main"><div class="row-title">${esc(u.name)}</div><div class="row-sub">${esc(u.center || '')}</div></div><div class="checkbox ${checked ? 'checked' : ''}" data-uid="${u.id}"></div></div>`;
+    }).join('') + '</div>';
+
+    listBox.querySelectorAll('.checkbox').forEach(cb=>{
+      cb.addEventListener('click', async ()=>{
+        const uidVal = cb.dataset.uid;
+        const nowChecked = !cb.classList.contains('checked');
+        cb.classList.toggle('checked', nowChecked);
+        const m = await getAttendanceMap(eventId);
+        if (nowChecked) m[uidVal] = true; else delete m[uidVal];
+        await setAttendanceMap(eventId, m);
+        statsBox.innerHTML = statsHtml(Object.keys(m).length);
+      });
+    });
+  }
+  document.getElementById('attendanceEventSelect').addEventListener('change', renderAttendanceList);
+
+  // ---------- REPORTS ----------
+  document.getElementById('segByUser').addEventListener('click', ()=>{
+    document.getElementById('segByUser').classList.add('active');
+    document.getElementById('segByEvent').classList.remove('active');
+    document.getElementById('reportByUser').style.display = 'block';
+    document.getElementById('reportByEvent').style.display = 'none';
+  });
+  document.getElementById('segByEvent').addEventListener('click', ()=>{
+    document.getElementById('segByEvent').classList.add('active');
+    document.getElementById('segByUser').classList.remove('active');
+    document.getElementById('reportByEvent').style.display = 'block';
+    document.getElementById('reportByUser').style.display = 'none';
+  });
+
+  function refreshReportSelects(){
+    const opts = '<option value="">Select a person…</option>' + usersCache.map(u=>`<option value="${u.id}">${esc(u.name)}</option>`).join('');
+    const sel = document.getElementById('reportUserSelect');
+    const prev = sel.value;
+    sel.innerHTML = opts;
+    if (usersCache.find(u=>u.id===prev)) sel.value = prev;
+    populateEventSelects();
+    document.getElementById('reportUserResult').innerHTML = '';
+    document.getElementById('reportEventResult').innerHTML = '';
+  }
+
+  document.getElementById('reportUserSelect').addEventListener('change', async function(){
+    const userId = this.value;
+    const box = document.getElementById('reportUserResult');
+    if (!userId){ box.innerHTML=''; return; }
+    box.innerHTML = '<div class="loading">Loading…</div>';
+    const keys = await sList('attendance:');
+    const vals = await sGetMulti(keys);
+    const attended = [];
+    Object.keys(vals).forEach(k=>{
+      let map; try{ map = JSON.parse(vals[k]); }catch(e){ return; }
+      if (map[userId]){
+        const evId = k.replace('attendance:', '');
+        const ev = eventsCache.find(e=>e.id===evId);
+        attended.push(ev || {id: evId, name:'(deleted event)', date:''});
+      }
+    });
+    attended.sort((a,b)=> (b.date||'').localeCompare(a.date||''));
+    const user = usersCache.find(u=>u.id===userId);
+    box.innerHTML = `<div class="stat-strip"><div class="stat-box"><div class="num">${attended.length}</div><div class="lbl">Events attended</div></div></div>` +
+      (attended.length
+        ? '<div class="list">' + attended.map(ev=>`<div class="row"><div class="avatar-fallback">📅</div><div class="row-main"><div class="row-title">${esc(ev.name)}</div><div class="row-sub">${esc(ev.date||'')}</div></div></div>`).join('') + '</div>'
+        : `<div class="empty"><strong>${esc(user ? user.name : 'This person')} hasn\u2019t attended any events yet</strong>Mark attendance from the Attend tab.</div>`);
+  });
+
+  document.getElementById('reportEventSelect').addEventListener('change', async function(){
+    const eventId = this.value;
+    const box = document.getElementById('reportEventResult');
+    if (!eventId){ box.innerHTML=''; return; }
+    box.innerHTML = '<div class="loading">Loading…</div>';
+    const map = await getAttendanceMap(eventId);
+    const present = usersCache.filter(u=>map[u.id]);
+    box.innerHTML = `<div class="stat-strip"><div class="stat-box"><div class="num">${present.length}</div><div class="lbl">People present</div></div><div class="stat-box"><div class="num">${usersCache.length}</div><div class="lbl">Total people</div></div></div>` +
+      (present.length
+        ? '<div class="list">' + present.map(u=>{
+            const av = u.userPhoto ? `<img class="avatar" src="${u.userPhoto}">` : `<div class="avatar-fallback">${esc(initials(u.name))}</div>`;
+            return `<div class="row">${av}<div class="row-main"><div class="row-title">${esc(u.name)}</div><div class="row-sub">${esc(u.center||'')}</div></div></div>`;
+          }).join('') + '</div>'
+        : '<div class="empty"><strong>No one marked present yet</strong>Go to the Attend tab to mark this event.</div>');
+  });
+
+  // ---------- PIN gate ----------
+  const PIN_KEY = 'app:pin';
+  let pinMode = null;
+
+  async function initApp(){
+    await Promise.all([loadUsers(), loadEvents()]);
+    renderUsersList();
+    renderEventsList();
+    populateEventSelects();
+  }
+
+  function unlockApp(){
+    document.getElementById('pinOverlay').classList.remove('active');
+    document.getElementById('app').style.display = '';
+    initApp();
+  }
+
+  async function initPinGate(){
+    document.getElementById('pinOverlay').style.display = 'flex';
+    const promptEl = document.getElementById('pinPrompt');
+    const confirmWrap = document.getElementById('pinConfirmWrap');
+    const stored = await sGet(PIN_KEY);
+    if (!stored){
+      pinMode = 'set';
+      promptEl.textContent = 'Create a PIN so only people you share it with can open this register.';
+      confirmWrap.style.display = 'block';
+      document.getElementById('pinSubmitBtn').textContent = 'Set PIN & continue';
+    } else {
+      pinMode = 'enter';
+      promptEl.textContent = 'Enter the shared PIN to open this register.';
+      confirmWrap.style.display = 'none';
+      document.getElementById('pinSubmitBtn').textContent = 'Continue';
+    }
+  }
+
+  document.getElementById('pinSubmitBtn').addEventListener('click', async ()=>{
+    const errEl = document.getElementById('pinError');
+    errEl.textContent = '';
+    const val = document.getElementById('pinInput').value.trim();
+    if (pinMode === 'set'){
+      const confirmVal = document.getElementById('pinConfirmInput').value.trim();
+      if (val.length < 4){ errEl.textContent = 'PIN must be at least 4 digits.'; return; }
+      if (val !== confirmVal){ errEl.textContent = 'PINs do not match.'; return; }
+      const btn = document.getElementById('pinSubmitBtn');
+      btn.textContent = 'Saving…'; btn.disabled = true;
+      const res = await sSet(PIN_KEY, val);
+      btn.disabled = false;
+      if (!res){ errEl.textContent = 'Could not save PIN — check your connection.'; return; }
+      unlockApp();
+    } else {
+      const stored = await sGet(PIN_KEY);
+      if (val !== stored){ errEl.textContent = 'Incorrect PIN — try again.'; document.getElementById('pinInput').value=''; return; }
+      unlockApp();
+    }
+  });
+  document.getElementById('pinInput').addEventListener('keydown', e=>{ if (e.key === 'Enter') document.getElementById('pinSubmitBtn').click(); });
+  document.getElementById('pinConfirmInput').addEventListener('keydown', e=>{ if (e.key === 'Enter') document.getElementById('pinSubmitBtn').click(); });
+
+  document.getElementById('changePinBtn').addEventListener('click', async ()=>{
+    const stored = await sGet(PIN_KEY) || '';
+    const current = prompt('Enter the current PIN to change it:');
+    if (current === null) return;
+    if (current !== stored){ showToast('Incorrect current PIN'); return; }
+    const next = prompt('Enter a new PIN (4–8 digits):');
+    if (next === null) return;
+    if (next.trim().length < 4){ showToast('PIN must be at least 4 digits'); return; }
+    const confirmNext = prompt('Confirm the new PIN:');
+    if (confirmNext !== next){ showToast('PINs did not match — not changed'); return; }
+    await sSet(PIN_KEY, next.trim());
+    showToast('PIN updated');
+  });
+
+  initPinGate();
+
+})();
+</script>
+</body>
+</html>
